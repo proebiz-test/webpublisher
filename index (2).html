@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TENDERBOX 4 - Webpublisher</title>
+<style>
+  :root {
+    --tbx-green: #6fa93f;
+    --tbx-green-dark: #5a8a32;
+    --tbx-green-pale: #dff0c8;
+    --tbx-page-bg: #f4f5f6;
+    --tbx-card-bg: #ffffff;
+    --tbx-border: #e6e7e9;
+    --tbx-text: #2b2d33;
+    --tbx-text-muted: #7a7d85;
+    --tbx-status-progress-bg: #dff0c8;
+    --tbx-status-progress-fg: #4c7a26;
+    --tbx-status-finished-bg: #e7e8ea;
+    --tbx-status-finished-fg: #6b6e75;
+    --tbx-status-cancelled-bg: #f7dede;
+    --tbx-status-cancelled-fg: #a13a3a;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body { margin: 0; }
+
+  @keyframes tbxFadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes tbxFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes tbxScaleIn {
+    from { opacity: 0; transform: translateY(14px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .tbx-wp {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--tbx-text);
+    background: var(--tbx-page-bg);
+    max-width: 1280px;
+    margin: 0 auto;
+    animation: tbxFadeIn .4s ease both;
+  }
+
+  /* ---------- top bar ---------- */
+  .tbx-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+    border-bottom: 1px solid var(--tbx-border);
+    padding: 14px 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .tbx-brand { display: flex; align-items: center; gap: 22px; }
+  .tbx-logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; }
+  .tbx-logo-icon {
+    width: 26px; height: 26px; background: var(--tbx-green);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    transition: transform .2s ease;
+  }
+  .tbx-logo:hover .tbx-logo-icon { transform: rotate(-6deg) scale(1.06); }
+  .tbx-logo-icon span { width: 10px; height: 10px; background: #fff; border-radius: 2px; }
+  .tbx-page-title { font-weight: 700; font-size: 18px; color: var(--tbx-text); }
+
+  /* ---------- domain switcher (testovací nástroj, ne pro finální embed) ---------- */
+  .tbx-domain-switch { display: flex; align-items: center; gap: 8px; }
+  .tbx-domain-switch input {
+    height: 34px; width: 260px; border: 1px solid var(--tbx-border); border-radius: 8px;
+    padding: 0 10px; font-size: 13px; color: var(--tbx-text);
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .tbx-domain-switch input:focus {
+    outline: none; border-color: var(--tbx-green);
+    box-shadow: 0 0 0 3px rgba(111, 169, 63, 0.18);
+  }
+  .tbx-domain-switch .tbx-btn { height: 34px; padding: 0 14px; }
+
+  /* ---------- content card ---------- */
+  .tbx-card {
+    background: var(--tbx-card-bg);
+    margin: 0;
+    border-bottom: 1px solid var(--tbx-border);
+  }
+  .tbx-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 22px 24px 18px;
+  }
+  .tbx-card-title { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+  .tbx-card-title .tbx-logo-icon { width: 24px; height: 24px; }
+
+  .tbx-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tbx-select, .tbx-search, .tbx-filter-btn {
+    height: 38px;
+    border: 1px solid var(--tbx-border);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    color: var(--tbx-text);
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease, transform .1s ease;
+  }
+  .tbx-select:focus, .tbx-search:focus {
+    outline: none;
+    border-color: var(--tbx-green);
+    box-shadow: 0 0 0 3px rgba(111, 169, 63, 0.18);
+  }
+  .tbx-select { padding: 0 12px; min-width: 150px; appearance: none; background-image: none; cursor: pointer; }
+  .tbx-search-wrap { position: relative; }
+  .tbx-search { padding: 0 12px 0 36px; width: 220px; }
+  .tbx-search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: var(--tbx-text-muted); transition: fill .15s ease; }
+  .tbx-search:focus + svg,
+  .tbx-search-wrap:focus-within svg { fill: var(--tbx-green-dark); }
+  .tbx-filter-btn { padding: 0 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; }
+  .tbx-filter-btn:hover { background: var(--tbx-page-bg); border-color: #d5d7da; }
+  .tbx-filter-btn:active { transform: scale(.97); }
+  .tbx-filter-btn svg { width: 15px; height: 15px; fill: var(--tbx-text-muted); }
+
+  /* ---------- table ---------- */
+  .tbx-table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tbx-text-muted);
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--tbx-border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--tbx-border);
+    font-size: 15px;
+    vertical-align: middle;
+  }
+  tbody tr {
+    animation: tbxFadeInUp .32s ease both;
+    transition: background-color .15s ease;
+  }
+  tbody tr:hover { background: #fafbf8; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  td.tbx-id { color: var(--tbx-text); font-weight: 500; }
+  .tbx-row-icon { display: inline-flex; vertical-align: middle; margin-right: 10px; transition: transform .15s ease; }
+  .tbx-row-icon svg { width: 18px; height: 18px; fill: var(--tbx-green); }
+  tbody tr:hover .tbx-row-icon { transform: scale(1.12); }
+
+  .tbx-pill {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: transform .15s ease;
+  }
+  .tbx-pill.in_progress { background: var(--tbx-status-progress-bg); color: var(--tbx-status-progress-fg); }
+  .tbx-pill.finished    { background: var(--tbx-status-finished-bg); color: var(--tbx-status-finished-fg); }
+  .tbx-pill.cancelled   { background: var(--tbx-status-cancelled-bg); color: var(--tbx-status-cancelled-fg); }
+  .tbx-pill.planned     { background: #eef3ff; color: #3a5ba0; }
+  tbody tr:hover .tbx-pill { transform: scale(1.04); }
+
+  td.tbx-actions { text-align: right; }
+  .tbx-icon-link {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    color: var(--tbx-green-dark); text-decoration: none;
+    border: none; background: transparent; cursor: pointer; padding: 0; font: inherit;
+    transition: background-color .15s ease, transform .15s ease;
+  }
+  .tbx-icon-link:hover { background: var(--tbx-green-pale); transform: scale(1.08); }
+  .tbx-icon-link:active { transform: scale(.95); }
+  .tbx-icon-link svg { width: 18px; height: 18px; fill: currentColor; }
+
+  .tbx-empty, .tbx-error {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--tbx-text-muted);
+    animation: tbxFadeIn .3s ease both;
+  }
+  .tbx-error { color: var(--tbx-status-cancelled-fg); }
+
+  /* ---------- pagination ---------- */
+  .tbx-pagination {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    padding: 14px 24px; border-top: 1px solid var(--tbx-border);
+  }
+  .tbx-pagination-info { font-size: 13px; color: var(--tbx-text-muted); }
+  .tbx-pagination-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tbx-pagination-controls .tbx-select { height: 36px; min-width: 120px; }
+  .tbx-pagination-controls .tbx-btn { height: 36px; padding: 0 14px; }
+  .tbx-pagination-controls .tbx-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .tbx-pagination-controls .tbx-btn:disabled:hover { background: #fff; }
+
+  /* ---------- footer ---------- */
+  .tbx-footer {
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--tbx-text-muted);
+  }
+  .tbx-footer a { color: var(--tbx-green-dark); text-decoration: none; }
+  .tbx-footer a:hover { text-decoration: underline; }
+
+  /* ---------- filter modal ---------- */
+  .tbx-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 22, 20, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s ease, visibility 0s linear .2s;
+  }
+  .tbx-modal-overlay.tbx-open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .2s ease, visibility 0s linear 0s;
+  }
+  .tbx-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 560px;
+    padding: 28px 32px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(16px) scale(.97);
+    opacity: 0;
+    transition: transform .25s cubic-bezier(.2,.8,.2,1), opacity .2s ease;
+  }
+  .tbx-modal-overlay.tbx-open .tbx-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .tbx-modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .tbx-modal-head h2 { margin: 0; font-size: 22px; font-weight: 700; }
+  .tbx-modal-close {
+    border: none; background: transparent; cursor: pointer;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    color: var(--tbx-text); border-radius: 6px;
+    transition: background-color .15s ease, transform .15s ease;
+  }
+  .tbx-modal-close:hover { background: var(--tbx-page-bg); transform: rotate(90deg); }
+  .tbx-modal-close svg { width: 18px; height: 18px; fill: currentColor; }
+
+  /* ---------- detail modal layout (napodobuje adminovský vzhled) ---------- */
+  #tbx-detail-modal { max-width: 900px; }
+  .tbx-detail-grid { display: grid; grid-template-columns: 190px 1fr; gap: 28px; }
+  .tbx-detail-sidebar { border-right: 1px solid var(--tbx-border); padding-right: 20px; }
+  .tbx-detail-logo-box {
+    width: 100%; aspect-ratio: 3/2; border: 1px solid var(--tbx-border); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+    overflow: hidden; background: #fff; padding: 10px;
+    animation: tbxScaleIn .35s ease both;
+  }
+  .tbx-detail-logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .tbx-detail-logo-fallback { font-weight: 800; font-size: 20px; color: var(--tbx-green-dark); letter-spacing: .02em; text-align: center; }
+  .tbx-detail-nav-title { font-size: 11px; font-weight: 700; color: var(--tbx-text-muted); text-transform: uppercase; letter-spacing: .04em; margin: 16px 0 8px; animation: tbxFadeIn .3s ease both; }
+  .tbx-detail-nav-title:first-child { margin-top: 0; }
+  .tbx-detail-nav-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px;
+    color: var(--tbx-text); font-size: 14px; cursor: pointer;
+    transition: background-color .15s ease, color .15s ease, transform .1s ease;
+    animation: tbxFadeInUp .3s ease both;
+  }
+  .tbx-detail-nav-item svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; transition: transform .15s ease; }
+  .tbx-detail-nav-item:not(.tbx-disabled):hover { background: var(--tbx-page-bg); }
+  .tbx-detail-nav-item:not(.tbx-disabled):hover svg { transform: scale(1.12); }
+  .tbx-detail-nav-item:not(.tbx-disabled):active { transform: scale(.97); }
+  .tbx-detail-nav-item.tbx-active { background: var(--tbx-green-pale); color: var(--tbx-green-dark); font-weight: 600; }
+  .tbx-detail-nav-item.tbx-disabled { color: var(--tbx-text-muted); cursor: not-allowed; }
+  .tbx-detail-sidebar .tbx-detail-nav-item:nth-of-type(1) { animation-delay: .05s; }
+  .tbx-detail-sidebar .tbx-detail-nav-item:nth-of-type(2) { animation-delay: .1s; }
+  .tbx-detail-sidebar .tbx-detail-nav-item:nth-of-type(3) { animation-delay: .15s; }
+
+  .tbx-detail-org { color: var(--tbx-text-muted); font-size: 14px; margin-bottom: 4px; animation: tbxFadeInUp .3s ease both; }
+  .tbx-detail-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 22px; font-weight: 700; margin-bottom: 22px; animation: tbxFadeInUp .35s ease both .05s; }
+  .tbx-detail-title-row .tbx-pill { animation: tbxScaleIn .3s ease both .2s; }
+
+  .tbx-detail-section-title {
+    display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px;
+    color: var(--tbx-text); margin: 0 0 12px;
+    animation: tbxFadeInUp .3s ease both;
+  }
+  .tbx-detail-section-title svg { width: 18px; height: 18px; fill: var(--tbx-green); }
+  .tbx-detail-section { margin-bottom: 26px; }
+
+  .tbx-detail-card {
+    border: 1px solid var(--tbx-border); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px;
+    animation: tbxFadeInUp .35s ease both;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .tbx-detail-card:hover { border-color: #cfe3bc; box-shadow: 0 4px 14px rgba(90, 138, 50, 0.08); }
+  .tbx-detail-process-status { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 14px; }
+  .tbx-detail-process-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tbx-detail-process-link { font-size: 13px; color: #3a6fd6; background: #eaf1ff; padding: 3px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; transition: background-color .15s ease, transform .15s ease; }
+  .tbx-detail-process-link:hover { background: #d8e6ff; transform: scale(1.03); }
+  .tbx-detail-process-link svg { width: 8px; height: 8px; fill: #3a6fd6; }
+  .tbx-detail-process-dates { color: var(--tbx-text-muted); font-size: 14px; margin-top: 8px; }
+
+  .tbx-detail-field-row + .tbx-detail-field-row { border-top: 1px solid var(--tbx-border); }
+  .tbx-detail-field-row {
+    padding: 12px 0; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    animation: tbxFadeIn .3s ease both; transition: background-color .15s ease;
+  }
+  .tbx-detail-field-row:hover { background: #fafbf8; }
+  .tbx-detail-field-row:first-child { padding-top: 0; }
+  .tbx-detail-field-label { color: var(--tbx-text-muted); font-size: 14px; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+  .tbx-detail-field-value { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+
+  /* ---------- posuvný seznam dokumentů (pokud je jich hodně) ---------- */
+  .tbx-documents-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--tbx-green) var(--tbx-page-bg);
+  }
+  .tbx-documents-scroll::-webkit-scrollbar { width: 8px; }
+  .tbx-documents-scroll::-webkit-scrollbar-track { background: var(--tbx-page-bg); border-radius: 8px; }
+  .tbx-documents-scroll::-webkit-scrollbar-thumb {
+    background: var(--tbx-green); border-radius: 8px;
+    border: 2px solid var(--tbx-page-bg); background-clip: padding-box;
+  }
+  .tbx-documents-scroll::-webkit-scrollbar-thumb:hover { background: var(--tbx-green-dark); }
+  .tbx-detail-field-value { font-weight: 700; font-size: 14px; text-align: right; }
+
+  .tbx-spinner {
+    width: 20px; height: 20px; border: 3px solid var(--tbx-border); border-top-color: var(--tbx-green);
+    border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 8px;
+    animation: tbxSpin .7s linear infinite;
+  }
+  @keyframes tbxSpin { to { transform: rotate(360deg); } }
+
+  .tbx-detail-footer-link { font-size: 13px; color: var(--tbx-green-dark); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+  .tbx-detail-footer-link:hover { text-decoration: underline; }
+
+  @media (max-width: 700px) {
+    .tbx-detail-grid { grid-template-columns: 1fr; }
+    .tbx-detail-sidebar { border-right: none; border-bottom: 1px solid var(--tbx-border); padding-right: 0; padding-bottom: 16px; margin-bottom: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .tbx-detail-logo-box { width: 64px; height: 44px; aspect-ratio: auto; margin-bottom: 0; }
+    .tbx-detail-nav-title, .tbx-detail-nav-item { display: none; }
+  }
+
+  .tbx-field { margin-bottom: 20px; }
+  .tbx-field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+  .tbx-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .tbx-select-field, .tbx-date-field {
+    position: relative;
+  }
+  .tbx-select-field select {
+    width: 100%; height: 42px; border: 1px solid var(--tbx-border); border-radius: 8px;
+    padding: 0 36px 0 12px; font-size: 14px; color: var(--tbx-text);
+    background: #fff; appearance: none; cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .tbx-select-field svg, .tbx-date-field svg {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; fill: var(--tbx-text-muted); pointer-events: none;
+  }
+  .tbx-date-field input {
+    width: 100%; height: 42px; border: 1px solid var(--tbx-border); border-radius: 8px;
+    padding: 0 36px 0 12px; font-size: 14px; color: var(--tbx-text);
+    box-sizing: border-box;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .tbx-date-field input::placeholder { color: #b6b8bc; }
+  .tbx-select-field select:focus,
+  .tbx-date-field input:focus {
+    outline: none;
+    border-color: var(--tbx-green);
+    box-shadow: 0 0 0 3px rgba(111, 169, 63, 0.18);
+  }
+
+  .tbx-modal-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 8px; flex-wrap: wrap; gap: 10px;
+  }
+  .tbx-btn {
+    height: 42px; padding: 0 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--tbx-border);
+    background: #fff; color: var(--tbx-text);
+    transition: background-color .15s ease, transform .1s ease, border-color .15s ease;
+  }
+  .tbx-btn:hover { background: var(--tbx-page-bg); }
+  .tbx-btn:active { transform: scale(.97); }
+  .tbx-btn-apply {
+    background: var(--tbx-green-pale); color: var(--tbx-green-dark); border-color: var(--tbx-green-pale);
+  }
+  .tbx-btn-apply:hover { background: #d2eab6; }
+  .tbx-btn-apply svg { width: 15px; height: 15px; fill: currentColor; }
+  .tbx-modal-footer-right { display: flex; gap: 10px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+
+  @media (max-width: 1000px) {
+    .tbx-topbar { padding: 12px 16px; }
+    .tbx-card-header { padding: 18px 16px 14px; }
+    thead th, tbody td { padding-left: 16px; padding-right: 16px; }
+    .tbx-footer { padding: 16px; }
+  }
+
+  @media (max-width: 640px) {
+    .tbx-brand { gap: 12px; flex-wrap: wrap; }
+    .tbx-modal { padding: 22px 18px 18px; border-radius: 12px; }
+    .tbx-field-row { grid-template-columns: 1fr; gap: 14px; }
+    .tbx-modal-footer { flex-direction: column-reverse; align-items: stretch; }
+    .tbx-modal-footer-right { flex-direction: column; }
+    .tbx-btn { width: 100%; justify-content: center; }
+  }
+
+  @media (max-width: 760px) {
+    thead { display: none; }
+    tbody tr {
+      display: block;
+      border-bottom: 8px solid var(--tbx-page-bg);
+      animation: tbxFadeInUp .3s ease both;
+    }
+    tbody td {
+      display: flex; justify-content: space-between; gap: 12px;
+      border-bottom: 1px solid var(--tbx-border);
+      padding: 10px 16px;
+    }
+    tbody tr:last-child td:last-child { border-bottom: 1px solid var(--tbx-border); }
+    tbody td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      color: var(--tbx-text-muted);
+      flex-shrink: 0;
+    }
+    td.tbx-actions { justify-content: flex-end; }
+    .tbx-card-header { flex-direction: column; align-items: flex-start; }
+    .tbx-controls { width: 100%; }
+    .tbx-search { width: 100%; }
+    .tbx-select { width: 100%; }
+    .tbx-filter-btn { width: 100%; justify-content: center; }
+    .tbx-pagination { flex-direction: column; align-items: stretch; }
+    .tbx-pagination-controls { justify-content: space-between; }
+    .tbx-pagination-controls .tbx-select { flex: 1; min-width: 0; }
+  }
+
+  @media (max-width: 420px) {
+    .tbx-logo { font-size: 16px; }
+    .tbx-card-title { font-size: 18px; }
+    .tbx-modal-head h2 { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="tbx-webpublisher" class="tbx-wp"
+     data-api="https://edu.proebiz.io/api/tenders"
+     data-organization-id=""
+     data-title="Tendry"
+     data-refresh-seconds="0">
+
+  <div class="tbx-topbar">
+    <div class="tbx-brand">
+      <div class="tbx-logo">
+        <div class="tbx-logo-icon"><span></span></div>
+        TENDERBOX
+      </div>
+      <div class="tbx-page-title" id="tbx-page-title">Tendry</div>
+    </div>
+    <div class="tbx-domain-switch">
+      <input type="text" id="tbx-domain-input" placeholder="https://klient.proebiz.io/api/tenders">
+      <button type="button" id="tbx-domain-apply" class="tbx-btn tbx-btn-apply">Načíst</button>
+    </div>
+  </div>
+
+  <div class="tbx-card">
+    <div class="tbx-card-header">
+      <div class="tbx-card-title">
+        <div class="tbx-logo-icon"><span></span></div>
+        <span id="tbx-caption">Tendry</span>
+      </div>
+      <div class="tbx-controls">
+        <select class="tbx-select" id="tbx-status-filter">
+          <option value="">Všechny stavy</option>
+          <option value="in_progress">Probíhající</option>
+          <option value="finished">Ukončené</option>
+          <option value="cancelled">Zrušené</option>
+        </select>
+        <div class="tbx-search-wrap">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5L20.49 19l-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+          <input class="tbx-search" id="tbx-search" type="text" placeholder="Vyhledat...">
+        </div>
+        <button class="tbx-filter-btn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M3 5h18v2l-7 8v5l-4-2v-3L3 7z"/></svg>
+          Filtrovat
+        </button>
+      </div>
+    </div>
+
+    <div class="tbx-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Předmět</th>
+            <th>Organizace</th>
+            <th>Spuštěno</th>
+            <th>Kontakt</th>
+            <th>Účastníci</th>
+            <th>Stav</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbx-tbody">
+          <tr><td colspan="8" class="tbx-empty">Načítám data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbx-pagination">
+      <div class="tbx-pagination-info" id="tbx-pagination-info">Načítám...</div>
+      <div class="tbx-pagination-controls">
+        <select class="tbx-select" id="tbx-page-size">
+          <option value="10">10 / stránka</option>
+          <option value="20" selected>20 / stránka</option>
+          <option value="50">50 / stránka</option>
+        </select>
+        <button type="button" class="tbx-btn" id="tbx-page-prev">‹ Předchozí</button>
+        <button type="button" class="tbx-btn" id="tbx-page-next">Další ›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbx-footer">
+    © <span id="tbx-year"></span> PROEBIZ s.r.o. &nbsp;·&nbsp; TENDERBOX 4AI &nbsp;·&nbsp; <a href="#">Cookies</a>
+  </div>
+
+  <div class="tbx-modal-overlay" id="tbx-filter-overlay">
+    <div class="tbx-modal">
+      <div class="tbx-modal-head">
+        <h2>Nastavení filtru</h2>
+        <button class="tbx-modal-close" type="button" id="tbx-filter-close" aria-label="Zavřít">
+          <svg viewBox="0 0 24 24"><path d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.3 19.7l-1.42-1.41L9.17 12 2.88 5.71 4.3 4.29l6.29 6.3 6.3-6.3z"/></svg>
+        </button>
+      </div>
+
+      <div class="tbx-field">
+        <label for="tbx-filter-org">Organizace</label>
+        <div class="tbx-select-field">
+          <select id="tbx-filter-org">
+            <option value="">Vybrat...</option>
+          </select>
+          <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+      </div>
+
+      <div class="tbx-field tbx-field-row">
+        <div>
+          <label for="tbx-filter-started-from">Spuštěno od</label>
+          <div class="tbx-date-field">
+            <input type="text" id="tbx-filter-started-from" placeholder="dd.mm.rrrr hh:mm">
+            <svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zM5 9h14v11H5V9z"/></svg>
+          </div>
+        </div>
+        <div>
+          <label for="tbx-filter-started-to">Spuštěno do</label>
+          <div class="tbx-date-field">
+            <input type="text" id="tbx-filter-started-to" placeholder="dd.mm.rrrr hh:mm">
+            <svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zM5 9h14v11H5V9z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="tbx-field tbx-field-row">
+        <div>
+          <label for="tbx-filter-final-from">Začátek závěrečného procesu od</label>
+          <div class="tbx-date-field">
+            <input type="text" id="tbx-filter-final-from" placeholder="dd.mm.rrrr hh:mm">
+            <svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zM5 9h14v11H5V9z"/></svg>
+          </div>
+        </div>
+        <div>
+          <label for="tbx-filter-final-to">Začátek závěrečného procesu do</label>
+          <div class="tbx-date-field">
+            <input type="text" id="tbx-filter-final-to" placeholder="dd.mm.rrrr hh:mm">
+            <svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zM5 9h14v11H5V9z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="tbx-modal-footer">
+        <button class="tbx-btn tbx-btn-apply" type="button" id="tbx-filter-apply">
+          <svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
+          Filtrovat
+        </button>
+        <div class="tbx-modal-footer-right">
+          <button class="tbx-btn" type="button" id="tbx-filter-clear">Vyčistit</button>
+          <button class="tbx-btn" type="button" id="tbx-filter-cancel">Storno</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbx-modal-overlay" id="tbx-detail-overlay">
+    <div class="tbx-modal" id="tbx-detail-modal">
+      <div class="tbx-modal-head">
+        <h2 id="tbx-detail-title">Detail tendru</h2>
+        <button class="tbx-modal-close" type="button" id="tbx-detail-close" aria-label="Zavřít">
+          <svg viewBox="0 0 24 24"><path d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.3 19.7l-1.42-1.41L9.17 12 2.88 5.71 4.3 4.29l6.29 6.3 6.3-6.3z"/></svg>
+        </button>
+      </div>
+      <div id="tbx-detail-body">
+        <div class="tbx-empty"><span class="tbx-spinner"></span>Načítám detail...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ---------------------------------------------------------------------
+  // VZOREK REÁLNÝCH DAT z GET https://edu.proebiz.io/api/tenders
+  // (zkrácený výřez toho, co vrací skutečné TBX4 API - beze změny polí).
+  // ---------------------------------------------------------------------
+  const RAW_API_SAMPLE = [
+    { id: 370, subject: "JC - notifikace", releasedAt: "2026-08-18T06:46:12.279958Z", isRunning: true, isEnded: false,
+      organization: { id: 3, name: "PROEBIZ s.r.o." },
+      contactPersons: [{ id: 370, name: "Jan Cudlín", email: "jan.cudlin@proebiz.com" }],
+      administration: { participantCount: 1 },
+      processes: [{ id: 413, type: "QUOTE", beginAt: "2026-08-18T06:46:00Z", endAt: "2026-08-19T10:00:00Z" }] },
+    { id: 369, subject: "2026-08-17 Kapacitní", releasedAt: "2026-08-17T14:11:56.735717Z", isRunning: true, isEnded: false,
+      organization: { id: 7, name: "ABC s.r.o." },
+      contactPersons: [{ id: 369, name: "Petr Donath", email: "petr.donath@proebiz.com" }],
+      administration: { participantCount: 3 }, processes: [] },
+    { id: 368, subject: "2026-08-17 Nákup výpočetní techniky", releasedAt: "2026-08-17T14:05:35.508612Z", isRunning: true, isEnded: false,
+      organization: { id: 7, name: "ABC s.r.o." },
+      contactPersons: [{ id: 368, name: "Petr Donath", email: "petr.donath@proebiz.com" }],
+      administration: { participantCount: 3 },
+      processes: [{ id: 410, type: "QUOTE", beginAt: "2026-08-17T14:05:00Z", endAt: "2026-08-31T10:00:00Z" }] },
+    { id: 366, subject: "Kancelárske potreby", releasedAt: "2026-08-12T09:53:37.250472Z", isRunning: true, isEnded: false,
+      organization: { id: 3, name: "PROEBIZ s.r.o." },
+      contactPersons: [{ id: 366, name: "Viktória Grossová", email: "grossova@proebiz.com" }],
+      administration: { participantCount: 1 },
+      processes: [{ id: 407, type: "QUOTE", beginAt: "2026-08-12T09:53:00Z", endAt: "2026-08-17T10:00:00Z" }] },
+    { id: 365, subject: "JC - ukázka účastníka", releasedAt: "2026-08-10T10:12:21.115525Z", isRunning: true, isEnded: false,
+      organization: { id: 3, name: "PROEBIZ s.r.o." },
+      contactPersons: [{ id: 365, name: "Jan Cudlín", email: "jan.cudlin@proebiz.com" }],
+      administration: { participantCount: 4 },
+      processes: [{ id: 406, type: "QUOTE", beginAt: "2026-08-10T10:12:00Z", endAt: "2026-08-12T10:00:00Z" }] },
+    { id: 358, subject: "Nákup  software", releasedAt: "2026-08-03T10:00:55.207400Z", isRunning: true, isEnded: false,
+      organization: { id: 3, name: "PROEBIZ s.r.o." },
+      contactPersons: [{ id: 358, name: "Jan Cudlín", email: "jan.cudlin@proebiz.com" }],
+      administration: { participantCount: 10 },
+      processes: [{ id: 401, type: "QUOTE", beginAt: "2026-08-03T10:00:00Z", endAt: "2026-08-05T10:00:00Z" }] },
+    { id: 348, subject: "2026-07-10 Prodej kapacity", releasedAt: "2026-07-10T11:48:16.931351Z", isRunning: true, isEnded: false,
+      organization: { id: 3, name: "PROEBIZ s.r.o." },
+      contactPersons: [{ id: 348, name: "Petr Donath", email: "petr.donath@proebiz.com" }],
+      administration: { participantCount: 3 }, processes: [] },
+    { id: 317, subject: "Supply of Mobile Phones", releasedAt: "2026-06-02T10:30:41.556095Z", isRunning: false, isEnded: true,
+      organization: { id: 3, name: "PROEBIZ s.r.o." },
+      contactPersons: [{ id: 317, name: "Adam Mills", email: "adam.mills@proebiz.com" }],
+      administration: { participantCount: 0 },
+      processes: [
+        { id: 362, type: "REQUEST", beginAt: "2026-06-03T10:28:00Z", endAt: "2026-06-10T10:00:00Z" },
+        { id: 363, type: "QUOTE", beginAt: "2026-06-10T10:28:00Z", endAt: "2026-06-11T10:00:00Z" }
+      ] }
+  ];
+
+  const STATUS_LABELS = {
+    in_progress: "Probíhající",
+    finished: "Ukončené",
+    cancelled: "Zrušené",
+    planned: "Plánované"
+  };
+
+  const TEMPLATE_LABELS = {
+    TENDER: "RFx - Poptávka",
+    ERMMA: "ERMMA - eAukce",
+    NIPPON: "NIPPON - eAukce",
+    HOLLAND: "HOLLAND - eAukce",
+    CAPACITY: "Kapacitní aukce",
+    CAPACITY_ERMMA: "Kapacitní ERMMA",
+    FCFS: "FCFS"
+  };
+
+  const root = document.getElementById("tbx-webpublisher");
+  const tbody = document.getElementById("tbx-tbody");
+  const caption = document.getElementById("tbx-caption");
+  const pageTitle = document.getElementById("tbx-page-title");
+  const searchInput = document.getElementById("tbx-search");
+  const statusFilter = document.getElementById("tbx-status-filter");
+  document.getElementById("tbx-year").textContent = new Date().getFullYear();
+
+  // ---------- přepínač domény (testovací nástroj) ----------
+  const domainInput = document.getElementById("tbx-domain-input");
+  const domainApplyBtn = document.getElementById("tbx-domain-apply");
+  domainInput.value = root.getAttribute("data-api") || "";
+
+  function switchDomain() {
+    const newUrl = domainInput.value.trim();
+    if (!newUrl) return;
+    root.setAttribute("data-api", newUrl);
+    root.removeAttribute("data-organization-id"); // jiná doména = jiný obor organizací, zámek by nedával smysl
+    activeFilters = { organizationId: "", startedFrom: null, startedTo: null, finalFrom: null, finalTo: null };
+    searchInput.value = "";
+    statusFilter.value = "";
+    orgOptionsLoaded = false;
+    pageOffset = 0;
+    loadData();
+  }
+  domainApplyBtn.addEventListener("click", switchDomain);
+  domainInput.addEventListener("keydown", (e) => { if (e.key === "Enter") switchDomain(); });
+
+  // filter modal elements
+  const filterOverlay = document.getElementById("tbx-filter-overlay");
+  const filterOpenBtn = document.querySelector(".tbx-filter-btn");
+  const filterCloseBtn = document.getElementById("tbx-filter-close");
+  const filterCancelBtn = document.getElementById("tbx-filter-cancel");
+  const filterClearBtn = document.getElementById("tbx-filter-clear");
+  const filterApplyBtn = document.getElementById("tbx-filter-apply");
+  const filterOrgSelect = document.getElementById("tbx-filter-org");
+  const filterStartedFrom = document.getElementById("tbx-filter-started-from");
+  const filterStartedTo = document.getElementById("tbx-filter-started-to");
+  const filterFinalFrom = document.getElementById("tbx-filter-final-from");
+  const filterFinalTo = document.getElementById("tbx-filter-final-to");
+
+  // aktivní hodnoty filtru (aplikují se, až se stiskne "Filtrovat" v modalu)
+  let activeFilters = { organizationId: "", startedFrom: null, startedTo: null, finalFrom: null, finalTo: null };
+
+  let allTenders = [];
+  let pageOffset = 0;
+  let pageSize = 20;
+  let orgOptionsLoaded = false;
+
+  function fmtDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (isNaN(d)) return "";
+    return `${d.getDate()}. ${d.getMonth() + 1}. ${d.getFullYear()}`;
+  }
+
+  // parsuje "dd.mm.rrrr hh:mm" nebo "dd.mm.rrrr" na Date; vrací null, pokud je vstup prázdný/neplatný
+  function parseDateInput(value) {
+    if (!value || !value.trim()) return null;
+    const m = value.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+    if (!m) return null;
+    const [, dd, mm, yyyy, hh, min] = m;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh || 0), Number(min || 0));
+    return isNaN(d) ? null : d;
+  }
+
+  function populateOrgOptions(sourceTenders) {
+    const lockedOrgId = root.getAttribute("data-organization-id");
+    const orgFieldWrapper = filterOrgSelect.closest(".tbx-field");
+    if (lockedOrgId) {
+      // embed je napevno nastavený pro jednoho klienta - filtr organizace
+      // schováme, ať widget nenabízí přepnutí na data jiné firmy
+      if (orgFieldWrapper) orgFieldWrapper.style.display = "none";
+      return;
+    }
+    if (orgFieldWrapper) orgFieldWrapper.style.display = "";
+    const seen = new Map();
+    (sourceTenders || allTenders).forEach((t) => { if (t.organizationId != null && t.organization) seen.set(t.organizationId, t.organization); });
+    const orgs = Array.from(seen.entries()).sort((a, b) => a[1].localeCompare(b[1], "cs"));
+    filterOrgSelect.innerHTML = '<option value="">Vybrat...</option>' + orgs.map(([id, name]) => `<option value="${id}">${name}</option>`).join("");
+  }
+
+  function openFilterModal() {
+    filterOrgSelect.value = activeFilters.organizationId;
+    filterOverlay.classList.add("tbx-open");
+  }
+  function closeFilterModal() { filterOverlay.classList.remove("tbx-open"); }
+
+  filterOpenBtn.addEventListener("click", openFilterModal);
+  filterCloseBtn.addEventListener("click", closeFilterModal);
+  filterCancelBtn.addEventListener("click", closeFilterModal);
+  filterOverlay.addEventListener("click", (e) => { if (e.target === filterOverlay) closeFilterModal(); });
+
+  filterClearBtn.addEventListener("click", () => {
+    filterOrgSelect.value = "";
+    filterStartedFrom.value = "";
+    filterStartedTo.value = "";
+    filterFinalFrom.value = "";
+    filterFinalTo.value = "";
+  });
+
+  filterApplyBtn.addEventListener("click", () => {
+    activeFilters = {
+      organizationId: filterOrgSelect.value,
+      startedFrom: parseDateInput(filterStartedFrom.value),
+      startedTo: parseDateInput(filterStartedTo.value),
+      finalFrom: parseDateInput(filterFinalFrom.value),
+      finalTo: parseDateInput(filterFinalTo.value)
+    };
+    closeFilterModal();
+    pageOffset = 0;
+    loadData();
+  });
+
+  function iconEye() {
+    return '<svg viewBox="0 0 24 24"><path d="M12 5c-7 0-11 7-11 7s4 7 11 7 11-7 11-7-4-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>';
+  }
+
+  function iconTile() {
+    return '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>';
+  }
+
+  function renderRows(tenders) {
+    if (!tenders || tenders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="tbx-empty">Žádné tendry neodpovídají zadaným kritériím.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = tenders.map((t, i) => {
+      const statusLabel = STATUS_LABELS[t.status] || t.status || "-";
+      const delay = Math.min(i, 12) * 25;
+      return `
+        <tr style="animation-delay:${delay}ms">
+          <td data-label="ID" class="tbx-id"><span class="tbx-row-icon">${iconTile()}</span>${t.id ?? "-"}</td>
+          <td data-label="Předmět">${t.name ?? "-"}</td>
+          <td data-label="Organizace">${t.organization ?? "-"}</td>
+          <td data-label="Spuštěno">${fmtDate(t.startedAt)}</td>
+          <td data-label="Kontakt">${t.contactName ? `<a href="mailto:${t.contactEmail || ""}" style="color:var(--tbx-green-dark);text-decoration:none;">${t.contactName}</a>` : "-"}</td>
+          <td data-label="Účastníci">${t.participantCount ?? "-"}</td>
+          <td data-label="Stav"><span class="tbx-pill ${t.status ?? ""}">${statusLabel}</span></td>
+          <td data-label="" class="tbx-actions">
+            ${t.id ? `<button type="button" class="tbx-icon-link" data-tender-id="${t.id}" title="Zobrazit detail">${iconEye()}</button>` : ""}
+          </td>
+        </tr>`;
+    }).join("");
+  }
+
+  function applyFilters() {
+    const q = (searchInput.value || "").toLowerCase().trim();
+    const status = statusFilter.value;
+    const filtered = allTenders.filter((t) => {
+      const matchesQuery = !q || (t.name || "").toLowerCase().includes(q) || (t.organization || "").toLowerCase().includes(q) || String(t.id).includes(q);
+      const matchesStatus = !status || t.status === status;
+      const matchesOrg = !activeFilters.organizationId || String(t.organizationId) === String(activeFilters.organizationId);
+
+      const startedAt = t.startedAt ? new Date(t.startedAt) : null;
+      const matchesStartedFrom = !activeFilters.startedFrom || (startedAt && startedAt >= activeFilters.startedFrom);
+      const matchesStartedTo = !activeFilters.startedTo || (startedAt && startedAt <= activeFilters.startedTo);
+
+      const finalBeginAt = t.finalProcessBeginAt ? new Date(t.finalProcessBeginAt) : null;
+      const matchesFinalFrom = !activeFilters.finalFrom || (finalBeginAt && finalBeginAt >= activeFilters.finalFrom);
+      const matchesFinalTo = !activeFilters.finalTo || (finalBeginAt && finalBeginAt <= activeFilters.finalTo);
+
+      return matchesQuery && matchesStatus && matchesOrg && matchesStartedFrom && matchesStartedTo && matchesFinalFrom && matchesFinalTo;
+    });
+    renderRows(filtered);
+  }
+
+  // ---------- detail modal (živě natažený přes GET /api/tenders/{id}) ----------
+  const detailOverlay = document.getElementById("tbx-detail-overlay");
+  const detailClose = document.getElementById("tbx-detail-close");
+  const detailBody = document.getElementById("tbx-detail-body");
+  const detailTitle = document.getElementById("tbx-detail-title");
+
+  const PROCESS_TYPE_LABELS = { REQUEST: "Příjem žádostí", QUOTE: "Příjem nabídek", ERMMA: "Anglická aukce", NIPPON: "Japonská aukce", HOLLAND: "Holandská aukce", CAPACITY: "Kapacitní aukce", CAPACITY_ERMMA: "Kapacitní ERMMA aukce", FCFS: "FCFS aukce" };
+
+  function iconPlay() {
+    return '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  }
+  function iconDoc() {
+    return '<svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5z"/></svg>';
+  }
+  function iconGrid() {
+    return '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>';
+  }
+  function iconMail() {
+    return '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zm2 2v.01L12 12l6-5.99V6H6zm12 2.24-5.42 4.5a1 1 0 0 1-1.16 0L6 8.24V18h12z"/></svg>';
+  }
+  function iconDownload() {
+    return '<svg viewBox="0 0 24 24"><path d="M12 3v10.17l3.59-3.58L17 11l-5 5-5-5 1.41-1.41L11 13.17V3zM5 19h14v2H5z"/></svg>';
+  }
+  function fmtFileSize(bytes) {
+    if (bytes == null) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} kB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  // stav otevřeného detailu - drží se tu, aby přepínání záložek Přehled/Dokumenty
+  // nemuselo pořád znovu volat GET /api/tenders/{id}
+  let detailState = { tender: null, apiBase: "", view: "overview", documents: null };
+
+  function sidebarHtml() {
+    const tender = detailState.tender;
+    let siteOrigin = "";
+    try { siteOrigin = new URL(detailState.apiBase).origin; } catch (e) { /* mock režim */ }
+    const logoUrl = tender.organization?.logo?.url ? `${siteOrigin}${tender.organization.logo.url}` : null;
+    const initials = (tender.organization?.name || "?").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    const participantCount = tender.administration?.participantCount;
+    return `
+      <div class="tbx-detail-logo-box">
+        ${logoUrl
+          ? `<img src="${logoUrl}" alt="${tender.organization?.name ?? ""}" onerror="this.parentElement.innerHTML='<div class=&quot;tbx-detail-logo-fallback&quot;>${initials}</div>'">`
+          : `<div class="tbx-detail-logo-fallback">${initials}</div>`}
+      </div>
+      <div class="tbx-detail-nav-title">Obecné</div>
+      <div class="tbx-detail-nav-item ${detailState.view === "overview" ? "tbx-active" : ""}" data-detail-view="overview">${iconGrid()}Přehled</div>
+      <div class="tbx-detail-nav-item ${detailState.view === "documents" ? "tbx-active" : ""}" data-detail-view="documents">${iconDoc()}Dokumenty</div>
+      <div class="tbx-detail-nav-title">Účastníci</div>
+      <div class="tbx-detail-nav-item tbx-disabled" title="Zprávy jsou soukromá komunikace, veřejně nedostupné">${iconMail()}Zprávy${participantCount != null ? ` (${participantCount})` : ""}</div>`;
+  }
+
+  function overviewMainHtml() {
+    const tender = detailState.tender;
+    const isRunningPill = tender.isRunning
+      ? '<span class="tbx-pill in_progress">Probíhající</span>'
+      : (tender.isEnded ? '<span class="tbx-pill finished">Ukončeno</span>' : '<span class="tbx-pill planned">Plánováno</span>');
+    const publicPill = tender.settings?.isPublic ? '<span class="tbx-pill planned" style="background:#dbe9ff;color:#2f5fa8;">Veřejný</span>' : "";
+    const contact = (tender.contactPersons && tender.contactPersons.length) ? tender.contactPersons[0] : null;
+    let siteOrigin = "";
+    try { siteOrigin = new URL(detailState.apiBase).origin; } catch (e) {}
+    const detailPageUrl = siteOrigin ? `${siteOrigin}/${tender.locale || "cs"}/tenders/${tender.id}/summary` : null;
+
+    const processesHtml = (tender.processes || []).map((p, i) => `
+      <div class="tbx-detail-card" style="animation-delay:${i * 60}ms">
+        <div class="tbx-detail-process-status">
+          <span>Stav procesu:</span>
+          ${p.isRunning ? '<span class="tbx-pill in_progress">Probíhá</span>' : (p.isEnded ? '<span class="tbx-pill finished">Ukončeno</span>' : '<span class="tbx-pill planned">Plánováno</span>')}
+        </div>
+        <div class="tbx-detail-process-title">
+          ${PROCESS_TYPE_LABELS[p.type] || p.type}
+          <span class="tbx-detail-process-link"><svg viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg>Zobrazit detaily</span>
+        </div>
+        <div class="tbx-detail-process-dates">
+          ${fmtDate(p.beginAt)} ${p.beginAt ? new Date(p.beginAt).toTimeString().slice(0,5) : ""} &ndash; ${fmtDate(p.endAt)} ${p.endAt ? new Date(p.endAt).toTimeString().slice(0,5) : ""}
+        </div>
+      </div>`).join("") || '<div class="tbx-empty" style="padding:20px 0;">Zatím žádné procesy.</div>';
+
+    return `
+      <div class="tbx-detail-org">${tender.organization?.name ?? ""}</div>
+      <div class="tbx-detail-title-row">
+        <span style="overflow-wrap:anywhere;min-width:0;">${tender.subject ?? "-"}</span> ${isRunningPill} ${publicPill}
+      </div>
+      <div class="tbx-detail-section">
+        <div class="tbx-detail-section-title">${iconPlay()}Procesy</div>
+        ${processesHtml}
+      </div>
+      <div class="tbx-detail-section">
+        <div class="tbx-detail-section-title">${iconDoc()}Předmět</div>
+        <div class="tbx-detail-card" style="padding:0 18px;">
+          <div class="tbx-detail-field-row" style="animation-delay:80ms">
+            <span class="tbx-detail-field-label">Předmět</span>
+            <span class="tbx-detail-field-value">${tender.subject ?? "-"}</span>
+          </div>
+          <div class="tbx-detail-field-row" style="animation-delay:130ms">
+            <span class="tbx-detail-field-label">Číslo tendru</span>
+            <span class="tbx-detail-field-value">${tender.identifier || "-"}</span>
+          </div>
+          <div class="tbx-detail-field-row" style="animation-delay:180ms">
+            <span class="tbx-detail-field-label">Kontakt</span>
+            <span class="tbx-detail-field-value">${contact ? `${contact.name} · <a href="mailto:${contact.email}" style="color:var(--tbx-green-dark);">${contact.email}</a>` : "-"}</span>
+          </div>
+        </div>
+      </div>
+      ${detailPageUrl ? `<a class="tbx-detail-footer-link" href="${detailPageUrl}" target="_blank" rel="noopener">Otevřít celý detail v TENDERBOXu ↗</a>` : ""}`;
+  }
+
+  function documentsMainHtml() {
+    const tender = detailState.tender;
+    let siteOrigin = "";
+    try { siteOrigin = new URL(detailState.apiBase).origin; } catch (e) {}
+
+    if (detailState.documents === null) {
+      return `<div class="tbx-detail-section-title">${iconDoc()}Dokumenty</div><div class="tbx-empty" style="padding:24px 0;"><span class="tbx-spinner"></span>Načítám dokumenty...</div>`;
+    }
+    if (detailState.documents === "error") {
+      return `<div class="tbx-detail-section-title">${iconDoc()}Dokumenty</div><div class="tbx-error" style="padding:24px 0;">Dokumenty se nepodařilo načíst.</div>`;
+    }
+    const rows = detailState.documents.map((d, i) => `
+      <div class="tbx-detail-field-row" style="animation-delay:${i * 50}ms">
+        <span class="tbx-detail-field-label" style="text-align:left; flex: 1 1 auto;">
+          <div style="font-weight:600;color:var(--tbx-text);">${d.title}</div>
+          <div style="font-size:12.5px;color:var(--tbx-text-muted); overflow-wrap:anywhere;">${d.file?.name ?? ""} ${d.file?.size != null ? `(${fmtFileSize(d.file.size)})` : ""}</div>
+        </span>
+        <span class="tbx-detail-field-value" style="flex: 0 0 auto;">
+          ${d.file?.url ? `<a class="tbx-icon-link" href="${siteOrigin}${d.file.url}" target="_blank" rel="noopener" title="Stáhnout" style="color:var(--tbx-green-dark);">${iconDownload()}</a>` : "-"}
+        </span>
+      </div>`).join("") || '<div class="tbx-empty" style="padding:20px 0;">Žádné dokumenty.</div>';
+
+    const scrollable = detailState.documents.length > 5; // od ~6 dokumentů se list zafixuje a scrolluje
+    return `
+      <div class="tbx-detail-section-title">${iconDoc()}Dokumenty ${detailState.documents.length ? `<span style="color:var(--tbx-text-muted);font-weight:400;font-size:14px;">(${detailState.documents.length})</span>` : ""}</div>
+      <div class="tbx-detail-card ${scrollable ? "tbx-documents-scroll" : ""}" style="padding:0 18px;">${rows}</div>`;
+  }
+
+  async function ensureDocumentsLoaded() {
+    if (detailState.documents !== null) return;
+    const tender = detailState.tender;
+    const apiUrl = detailState.apiBase;
+    try {
+      if (!apiUrl || apiUrl === "mock") {
+        detailState.documents = tender.documents || []; // mock ukázka bez dokumentů
+      } else {
+        const base = apiUrl.split("?")[0];
+        const res = await fetch(`${base}/${tender.id}/documents`, { headers: { Accept: "application/json" }, credentials: "include" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        detailState.documents = await res.json();
+      }
+    } catch (err) {
+      detailState.documents = "error";
+    }
+    renderDetailModal();
+  }
+
+  function renderDetailModal() {
+    detailBody.innerHTML = `
+      <div class="tbx-detail-grid">
+        <div class="tbx-detail-sidebar">${sidebarHtml()}</div>
+        <div>${detailState.view === "documents" ? documentsMainHtml() : overviewMainHtml()}</div>
+      </div>`;
+    if (detailState.view === "documents") ensureDocumentsLoaded();
+  }
+
+  detailBody.addEventListener("click", (e) => {
+    const navItem = e.target.closest("[data-detail-view]");
+    if (navItem) {
+      detailState.view = navItem.getAttribute("data-detail-view");
+      renderDetailModal();
+    }
+  });
+
+  function closeDetailModal() { detailOverlay.classList.remove("tbx-open"); }
+  detailClose.addEventListener("click", closeDetailModal);
+  detailOverlay.addEventListener("click", (e) => { if (e.target === detailOverlay) closeDetailModal(); });
+
+  async function openDetailModal(id) {
+    detailOverlay.classList.add("tbx-open");
+    detailTitle.textContent = "";
+    detailBody.innerHTML = '<div class="tbx-empty"><span class="tbx-spinner"></span>Načítám detail...</div>';
+
+    const apiUrl = root.getAttribute("data-api");
+    try {
+      let tender;
+      if (!apiUrl || apiUrl === "mock") {
+        tender = RAW_API_SAMPLE.find((t) => String(t.id) === String(id));
+        if (!tender) throw new Error("tendr nenalezen v ukázkových datech");
+      } else {
+        const base = apiUrl.split("?")[0]; // .../api/tenders
+        const res = await fetch(`${base}/${id}`, { headers: { Accept: "application/json" }, credentials: "include" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        tender = await res.json();
+      }
+      detailState = { tender, apiBase: apiUrl, view: "overview", documents: null };
+      renderDetailModal();
+    } catch (err) {
+      detailBody.innerHTML = `<div class="tbx-error">Detail se nepodařilo načíst (${err.message}).</div>`;
+    }
+  }
+
+  tbody.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-tender-id]");
+    if (btn) openDetailModal(btn.getAttribute("data-tender-id"));
+  });
+
+  let searchDebounceTimer = null;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => { pageOffset = 0; loadData(); }, 350);
+  });
+  statusFilter.addEventListener("change", () => { pageOffset = 0; loadData(); });
+
+  // ---------- stránkování ----------
+  const pageSizeSelect = document.getElementById("tbx-page-size");
+  const pagePrevBtn = document.getElementById("tbx-page-prev");
+  const pageNextBtn = document.getElementById("tbx-page-next");
+  pageSizeSelect.value = String(pageSize);
+  pageSizeSelect.addEventListener("change", () => {
+    pageSize = parseInt(pageSizeSelect.value, 10);
+    pageOffset = 0;
+    loadData();
+  });
+  pagePrevBtn.addEventListener("click", () => {
+    pageOffset = Math.max(0, pageOffset - pageSize);
+    loadData();
+  });
+  pageNextBtn.addEventListener("click", () => {
+    pageOffset = pageOffset + pageSize;
+    loadData();
+  });
+
+  // ---------------------------------------------------------------------
+  // ADAPTÉR: převádí SKUTEČNOU odpověď z GET /api/tenders (pole objektů
+  // tender, přesně jak je vidět v Network tabu) na formát, který tabulka
+  // vykresluje. "Závěrečný proces" = poslední záznam v poli processes.
+  // ---------------------------------------------------------------------
+  function adaptFromTendersApi(rawTenders) {
+    return {
+      title: "Tendry",
+      tenders: (rawTenders || [])
+        .filter((t) => !t.settings?.isTest) // pojistka i pro případ, že by server parametr isTest ignoroval
+        .map((t) => {
+        const lastProcess = (t.processes && t.processes.length)
+          ? t.processes[t.processes.length - 1]
+          : null;
+        const contact = (t.contactPersons && t.contactPersons.length) ? t.contactPersons[0] : null;
+        const apiBase = (root.getAttribute("data-api") || "https://edu.proebiz.io/api/tenders").split("?")[0];
+        const siteBase = apiBase.replace(/\/api\/tenders$/, "");
+        return {
+          id: String(t.id),
+          name: t.subject,
+          organization: t.organization?.name ?? "",
+          organizationId: t.organization?.id ?? t.organizationId ?? null,
+          startedAt: t.releasedAt,
+          finalProcessBeginAt: lastProcess?.beginAt ?? null,
+          finalProcessLabel: lastProcess
+            ? `${fmtDate(lastProcess.beginAt)} - ${fmtDate(lastProcess.endAt)}`
+            : "",
+          contactName: contact?.name ?? "",
+          contactEmail: contact?.email ?? "",
+          participantCount: t.administration?.participantCount ?? null,
+          status: t.isRunning ? "in_progress" : (t.isEnded ? "finished" : "planned"),
+          // Skutečný formát ověřený proti reálné stránce (např. .../cs/tenders/370/summary):
+          detailUrl: `${siteBase}/${t.locale || "cs"}/tenders/${t.id}/summary`
+        };
+      })
+    };
+  }
+
+  // Sestaví query parametry přesně podle jmen z OpenAPI specifikace
+  // GET /api/tenders (search, offset, limit, locale, status, organizationId,
+  // releasedFrom/To, finalProcessFrom/To). Používá se jen když je nastaveno
+  // skutečné data-api (ne "mock").
+  function buildQueryParams() {
+    const params = new URLSearchParams();
+    const q = (searchInput.value || "").trim();
+    if (q) params.set("search", q);
+    if (statusFilter.value) params.set("status", statusFilter.value);
+    if (activeFilters.organizationId) params.set("organizationId", activeFilters.organizationId);
+    const lockedOrgId = root.getAttribute("data-organization-id");
+    if (lockedOrgId) params.set("organizationId", lockedOrgId); // embed napevno pro jednoho klienta - vyhraje nad ručním filtrem
+    if (activeFilters.startedFrom) params.set("releasedFrom", activeFilters.startedFrom.toISOString());
+    if (activeFilters.startedTo) params.set("releasedTo", activeFilters.startedTo.toISOString());
+    if (activeFilters.finalFrom) params.set("finalProcessFrom", activeFilters.finalFrom.toISOString());
+    if (activeFilters.finalTo) params.set("finalProcessTo", activeFilters.finalTo.toISOString());
+    params.set("isTest", "false"); // veřejný webpublisher nesmí zobrazovat interní testovací tendry
+    params.set("locale", "cs");
+    params.set("offset", String(pageOffset));
+    params.set("limit", String(pageSize));
+    return params;
+  }
+
+  function updatePaginationUI(shownCount, knownTotal) {
+    const info = document.getElementById("tbx-pagination-info");
+    const prevBtn = document.getElementById("tbx-page-prev");
+    const nextBtn = document.getElementById("tbx-page-next");
+    if (shownCount === 0 && pageOffset === 0) {
+      info.textContent = "Žádné tendry";
+    } else {
+      const from = pageOffset + 1;
+      const to = pageOffset + shownCount;
+      info.textContent = knownTotal != null ? `Zobrazeno ${from}–${to} z ${knownTotal}` : `Zobrazeno ${from}–${to}`;
+    }
+    prevBtn.disabled = pageOffset === 0;
+    // bez celkového počtu v odpovědi API poznáme konec stránkování jen podle
+    // toho, že přišlo méně záznamů, než jsme si vyžádali (limit)
+    nextBtn.disabled = shownCount < pageSize;
+  }
+
+  async function loadData() {
+    const apiUrl = root.getAttribute("data-api");
+    try {
+      let data;
+      let knownTotal = null;
+      if (!apiUrl || apiUrl === "mock") {
+        data = adaptFromTendersApi(RAW_API_SAMPLE);
+        const lockedOrgId = root.getAttribute("data-organization-id");
+        if (lockedOrgId) data.tenders = data.tenders.filter((t) => String(t.organizationId) === String(lockedOrgId));
+        // v mock režimu známe přesný celkový počet, tak stránkujeme lokálně,
+        // ať jde chování přepínačů otestovat i offline
+        knownTotal = data.tenders.length;
+        if (!orgOptionsLoaded) { populateOrgOptions(data.tenders); orgOptionsLoaded = true; } // z CELÉHO vzorku, ne jen aktuální stránky
+        data.tenders = data.tenders.slice(pageOffset, pageOffset + pageSize);
+      } else {
+        // POZOR: /api/tenders běží na jiné doméně než klientský web, kam
+        // se widget vloží → prohlížeč to zablokuje jako cross-origin
+        // request, pokud edu.proebiz.io nevrací hlavičku
+        // Access-Control-Allow-Origin. Podle OpenAPI specifikace navíc
+        // endpoint formálně dědí globální "security: basicAuth" - je
+        // potřeba ověřit v Network tabu (Headers), jestli a jak se
+        // autentizace v praxi vyžaduje i pro čtení veřejných tendrů.
+        const base = apiUrl.split("?")[0];
+        const url = `${base}?${buildQueryParams().toString()}`;
+        const res = await fetch(url, {
+          headers: { Accept: "application/json" },
+          credentials: "include" // pošle i session cookie, pokud edu.proebiz.io vyžaduje přihlášení
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const raw = await res.json();
+        data = Array.isArray(raw) ? adaptFromTendersApi(raw) : raw;
+      }
+      if (data.title) { caption.textContent = data.title; pageTitle.textContent = data.title; }
+      allTenders = data.tenders || [];
+      if (!orgOptionsLoaded) { populateOrgOptions(); orgOptionsLoaded = true; } // reálné API: org filtr se plní ze stránky, kterou server vrátí
+      // mock režim dál filtruje lokálně (search/status), reálné API už
+      // filtrované výsledky vrací samo přes query parametry výše
+      if (!apiUrl || apiUrl === "mock") {
+        applyFilters();
+      } else {
+        renderRows(allTenders);
+      }
+      updatePaginationUI(allTenders.length, knownTotal);
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="8" class="tbx-error">Data se nepodařilo načíst (${err.message}). Zkuste to prosím později.</td></tr>`;
+    }
+  }
+
+  loadData();
+
+  const refreshSeconds = parseInt(root.getAttribute("data-refresh-seconds") || "0", 10);
+  if (refreshSeconds > 0) {
+    setInterval(loadData, refreshSeconds * 1000);
+  }
+})();
+</script>
+
+</body>
+</html>
